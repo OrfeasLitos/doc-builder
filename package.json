@@ -1,0 +1,13 @@
+{
+  "name": "doc-builder",
+  "version": "0.1.0",
+  "description": "Create PDFs that contain code snippets and their outputs",
+  "license": "MIT",
+  "repository": "git://github.com/OrfeasLitos/doc-builder.git",
+  "dependencies": {
+    "command-line-args": "^5.1.1"
+  },
+  "devDependencies": {
+    "mocha": "^7.1.1"
+  }
+}
