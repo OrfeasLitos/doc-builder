@@ -1,0 +1,76 @@
+\ProvidesPackage{preamble}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{tcolorbox}
+\usepackage{fullpage}
+\usepackage{url}
+\usepackage{epigraph}
+\usepackage{xparse}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{ifthen}
+\usepackage{xstring}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+  {
+\lstset{
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    stepnumber=1,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2
+}
+
+\NewDocumentCommand{\TODO}{m}{\textcolor{red}{TODO: #1}}
+
+% access to environment variables
+\usepackage{catchfile}
+  \newcommand{\getenv}[2][]{%
+    \CatchFileEdef{\temp}{"|kpsewhich --var-value #2"}{\endlinechar=-1}%
+    \if\relax\detokenize{#1}\relax\temp\else\let#1\temp\fi}
+
+\NewDocumentCommand{\codelisting}{m}{
+  \noindent{\footnotesize \texttt{\StrBehind{#1}{public-sources/}}}
+  \lstinputlisting[language=Python]{#1}
+}
+
+\NewDocumentCommand{\addout}{m}{#1.out}
+
+\NewDocumentCommand{\outputlisting}{m}{
+  \lstinputlisting[language=bash]{\addout{#1}}
+}
+
+\theoremstyle{definition}
+\newtheorem{exercise}{Exercise}
+\newtheorem{exercise*}[exercise]{* Exercise}
+
+\getenv[\withsolutions]{SOLUTIONS}
+\NewDocumentCommand{\solution}{+m}{
+  \ifthenelse{\equal{\withsolutions}{true}}{
+    \getenv[\source]{#1}
+    \begin{tcolorbox}[title=Solution,colback=gray!40!white]
+      \codelisting{\source}
+      \outputlisting{\source}
+    \end{tcolorbox}
+  }{}
+}
+
+\NewDocumentCommand{\topythonbytes}{m}{
+  \texttt{b"#1"}
+}

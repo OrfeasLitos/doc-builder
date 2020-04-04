@@ -1,0 +1,455 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage{preamble}
+
+\title{Tutorial 3}
+
+\author{Computer Security \\
+Orfeas Stefanos Thyfronitis Litos \\
+School of Informatics \\
+University of Edinburgh}
+
+\date{}
+
+\begin{document}
+  \maketitle
+
+  \epigraph{Don't roll your own crypto, bro.}{Joseph Cox, VICE.com}
+
+  The tutorial is formative. This means that you will not submit your work and
+  it will not contribute in any way towards your final mark for the course. We
+  do however provide some challenges so that you can self-assess your
+  understanding of the material. Exercises marked with ``*'' are a bit more
+  challenging; they also form a sequence, so you'll need the solution of the
+  previous starred exercise to move on to the next.
+
+  In this tutorial, we will discuss the needed theory (keeping it to a
+  minimum)\footnote{We will throw various terms around. We will discuss only the
+  most relevant ones, but you are welcome to look up the rest if you're
+  curious.} and gain some hands-on experience with various cryptographic
+  primitives by exploring the
+  \texttt{pycryptodome}\footnote{\url{https://www.pycryptodome.org}}\footnote{In
+  fact we use \texttt{pycryptodomex}, because \texttt{pycryptodome} uses the
+  same module name as \texttt{pycrypto}, an outdated crypto library that we
+  unfortunately can't uninstall from DICE.} library provided for Python 3. We
+  will also try out
+  \texttt{hashlib}\footnote{\url{https://github.com/python/cpython/blob/3.8/Lib/hashlib.py}}.
+  % TODO: add examples with
+  % \texttt{pyaes}\footnote{\url{https://github.com/ricmoo/pyaes}}
+  % and update README.md when done
+  All these libraries are available on DICE machines, so don't just read but try
+  out the code yourself!
+
+  There are many more crypto libraries out there, implemented in and available
+  for every (useful) programming language. You can choose whichever suits you
+  best depending on your usecase, the choice we made here is quite arbitrary.
+  But please don't ever implement your own crypto library and proceed to use it
+  in production code -- you'll probably do a worse job than experts both in
+  terms of speed and (more crucially) security\footnote{Writing a toy
+  implementation of a cryptographic algorithm/protocol on the other hand may be
+  an educational and fun experience. It may even be the first step for you to
+  become a professional crypto coder!}.
+
+  \section{Cryptographic Hash functions}
+  \subsection{Theory}
+    Just as a brush up, a hash function $\mathcal{H} : \{0, 1\}^* \rightarrow
+    \{0, 1\}^n$ compresses\footnote{or expands, it if its length is less than
+    $n$} an input of arbitrary length down to $n$ bits. Two prominent security
+    properties desired by a cryptographic hash function are:
+    \begin{itemize}
+      \item One-wayness: Given $y \in \{0, 1\}^n$, it is hard to find $x \in
+      \{0, 1\}^*$ such that $\mathcal{H}(x) = y$.
+      \item Collision-freeness: It is hard to find $x_1 \neq x_2 \in \{0, 1\}^*$
+      such that $\mathcal{H}(x_1) = \mathcal{H}(x_2)$.
+    \end{itemize}
+
+    The two most common hash functions are SHA-2 and SHA-3, which are
+    standardized by NIST. Each comes in four variants, depending on their output
+    size (224, 256, 384, and 512 bits). If you are free to choose in your
+    project, opt for SHA3 as it is newer and shinier. Here we'll stick to the
+    256 versions because:
+    \begin{enumerate}
+      \item they are big enough to be secure for most applications
+      \item they give a nice round-number\footnote{\url{https://xkcd.com/1000/}}
+      output of 256 bits (a.k.a. 32 bytes).
+    \end{enumerate}
+
+    For historical reasons\footnote{SHA-1 had only one output size, 160 bits}
+    when we refer to a particular SHA-2 variant we drop the ``2''. Therefore the
+    256 variant of SHA-2 is written as SHA-256. The ``3'' of SHA-3 on the other
+    hand is always kept, e.g. the 384 variant of SHA-3 is written as SHA3-384.
+    Confusing, I know.
+
+  \subsection{Practice}
+    Enough talk, let's try to hash ``\texttt{Hello world!}'' with SHA256!
+
+    \getenv[\hellosha]{HELLO_SHA}
+    \codelisting{\hellosha}
+    If you're anything like me, this should happen when you run the above:
+    \outputlisting{\hellosha}
+
+    We used the \texttt{new()} method of the \texttt{SHA256} class, passing it
+    the string \texttt{Hello world!} in \textit{binary} (notice the \texttt{b}
+    before the string) and then called the method
+    \texttt{hexdigest()}\footnote{\textit{digest} is just an old-fashioned way
+    of saying \textit{hash}} of the object returned by \texttt{SHA256.new()},
+    which gave us a printable string with the desired hash.
+
+    This is essentially the same as the following:
+
+    \getenv[\helloshahex]{HELLO_SHA_HEX}
+    \codelisting{\helloshahex}
+    \outputlisting{\helloshahex}
+    The only difference here is that we use the builtin python method
+    \texttt{hex()} on the binary result of \texttt{SHA256.new(b"Hello
+    world!").digest()} to get the hash in printable form. It's good practice to
+    use the binary format returned by \texttt{digest()} for pretty much
+    everything else apart from printing.
+
+    If we want to hash a string that is the concatenation of various parts, we
+    can use \texttt{update()}:
+
+    \getenv[\helloshaupdate]{HELLO_SHA_UPDATE}
+    \codelisting{\helloshaupdate}
+    \outputlisting{\helloshaupdate}
+    This avoids the manual concatenation and, because of how most hash functions
+    work, can result in slightly more efficient code.
+
+    Just as a sanity check, let's hash ``\texttt{Hello world!}'' using
+    \texttt{hashlib} instead of \texttt{pycryptodome} and ensure that the output
+    is the same.
+
+    \getenv[\helloshahashlib]{HELLO_SHA_HASHLIB}
+    \codelisting{\helloshahashlib}
+    \outputlisting{\helloshahashlib}
+    Phew! Works as expected. It turns out that the syntax is slightly different
+    (spotting the differences is left as an exercise for the reader), but in
+    effect both APIs give us exactly the same methods to play with. Don't ask me
+    who is the copycat.
+
+    \begin{exercise}
+      \label{ex:hash:name}
+      Write a script that prints the SHA256 hash of your full name.
+    \end{exercise}
+
+    \solution{SHA_NAME}
+
+    \begin{exercise}
+      \label{ex:hash:sourcecode}
+      Check that the .iso of alpine Linux
+      (\url{https://alpinelinux.org/downloads/}) ``mini root filesystem'' for
+      armv7\footnote{\url{http://dl-cdn.alpinelinux.org/alpine/v3.10/releases/armv7/alpine-minirootfs-3.10.3-armv7.tar.gz}}
+      hashes to the value claimed on the
+      webpage\footnote{\url{http://dl-cdn.alpinelinux.org/alpine/v3.10/releases/armv7/alpine-minirootfs-3.10.3-armv7.tar.gz.sha256}}.
+      \emph{Hint:} You can download the .iso and read the file with
+      \texttt{open()} or use \texttt{urlopen} from \texttt{urllib.request} to
+      download it directly from the script.
+    \end{exercise}
+
+    \solution{SHA_SOURCE_CODE}
+
+    \begin{exercise*}
+      \label{ex:hash:bruteforce}
+      Find the smallest bitstring such that the hex representation of its SHA256
+      hash starts with 0123. \emph{Hint:} Find a way to exhaustively test all
+      bitstrings, from smaller to larger, until you find a match. A useful data
+      type is \texttt{bytearray}.
+    \end{exercise*}
+
+    \solution{BRUTEFORCE}
+
+  \section{Symmetric key encryption}
+  \subsection{Theory}
+    Let's now do a quick refresher on what we've learned on symmetric key
+    encryption schemes. Such a scheme consists of a pair of functions, one for
+    encryption (takes a key and a plaintext, gives a ciphertext) and one for
+    decryption (takes a key and a ciphertext, gives a plaintext):
+    \begin{align*}
+      \mathit{Enc}: \{0, 1\}^{\lambda} \times \{0, 1\}^* \rightarrow \{0, 1\}^*
+      & \\
+      \mathit{Dec}: \{0, 1\}^{\lambda} \times \{0, 1\}^* \rightarrow \{0, 1\}^*
+      & \enspace.
+    \end{align*}
+    For such a scheme to work as expected, we require that if an encrypted
+    message is then decrypted with the same key, we should get back the original
+    message:
+    \begin{equation*}
+      \emph{Correctness:} \: \forall k \in \{0, 1\}^{\lambda}, \forall m \in
+      \{0, 1\}^*: \mathit{Dec}(k, \mathit{Enc}(k, m)) = m \enspace.
+    \end{equation*}
+
+    Unfortunately that's not enough because it doesn't say anything regarding
+    security\footnote{Observe that the useless scheme $\mathit{Enc}(k, x) =
+    \mathit{Dec}(k, x) = x$ satisfies correctness.}. In particular we'd want
+    some notion of ``the ciphertext leaks no bits of the plaintext''. The formal
+    version of this notion is \emph{semantic security}, which is exactly the
+    kind of security you should expect from any respectable symmetric key
+    encryption scheme.
+
+    A little bit more unavoidable theory before the code: The most widely used
+    building block for symmetric key encryption schemes are \emph{block
+    ciphers}\footnote{The reason: they are generally faster than the
+    alternative, \emph{stream ciphers}.}. A block cipher looks mostly like an
+    encryption scheme but takes as plaintext (or ciphertext) a small,
+    fixed-length message, which means that it's not suitable for encrypting my
+    latest 3-page-long love letter.
+
+    The simplest solution is to split up the plaintext into chunks of the
+    correct size (padding the last one if needed) and encrypt each chunk
+    separately, then do the reverse for decryption. That's also a bad idea. If
+    my letter contains the phrase ``I love you Alice'' many times (and the
+    repetitions happen to be aligned with the block size), an attacker that sees
+    the ciphertext can easily deduce that I use the same phrase over and
+    over\footnote{If that doesn't seem scary enough, take a look at the images
+    in \url{https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#ECB}.}.
+    That's not semantically secure.
+
+    To get security back, we have to somehow make each block depend on the
+    rest\footnote{Therefore achieving \emph{diffusion}.}. There is an abundance
+    of ways to achieve this dependence. These ways are called \emph{modes of
+    operation}, each with its own pros and cons\footnote{Who would have guessed
+    that cryptography is complicated...}. The naive way described above is the
+    Electronic Codebook (ECB) and we never use it in
+    practice\footnote{\url{https://www.reddit.com/r/ProgrammerHumor/comments/6m6bvv/all_block_cipher_modes_are_beautiful/}}.
+    The mode we care about in this tutorial is Cipher Feedback (CFB). We will
+    see the most crucial details as we go during the practical part (which we
+    finally reached!), but a full-blown comparison of all modes is beyond the
+    aims of this tutorial\footnote{In practice, we often need
+    \emph{authenticated encryption}. We then use the GCM mode of operation.}.
+
+  \subsection{Practice}
+    The by far most commonly used block cipher is AES. In fact it's so common
+    that it has been implemented in hardware and relevant instructions are
+    widely available on commercial CPUs\footnote{Which makes the following
+    phrase completely valid: ``Our CPU boasts of an instruction set enabling a
+    range of commonly used operations, such as bitshifts, logical AND, primary
+    school arithmetic and polynomial multiplication over the Galois Field
+    $2^8$.''}, so it is blazingly fast. We will therefore use this cipher for
+    our tutorial. The block size of AES is 128 bits (a.k.a. 16 bytes) and it
+    needs a key of length 128, 192, or 256 bits (i.e. 16, 24, or 32 bytes). Just
+    to be on the safe side, I recommend using 192 bits, because it is much
+    faster and in practice as secure as 256 bits\footnote{Different key sizes
+    also result in slightly different variations of the algorithm, but the API
+    is exactly the same.}.
+
+    Let's see the most basic example: Encrypting a phrase with a key and then
+    decrypting back to the original. We will use the CFB mode for this. This
+    mode needs some good quality randomness for the
+    IV\footnote{\emph{initialization vector}, a random number needed by the CFB
+    mode}, which we will get from the \texttt{Random} module of
+    \texttt{pycryptodome} (alternatively we could have used the \texttt{secrets}
+    module). A general piece of advice: Never, ever, ever use randomness that is
+    not dubbed ``cryptographically secure'' for your cryptographic tasks. For
+    example, the \texttt{random} Python module gives very predictable, and thus
+    bad quality, randomness and so we stay away from it. To be honest, in
+    production I'd rather use a library that handles the IV internally and does
+    not expose it at all to protect myself from footguns.
+
+    \getenv[\aesbasic]{AES_BASIC}
+    \codelisting{\aesbasic}
+    This is the expected output:
+    \outputlisting{\aesbasic}
+
+    Observe that we had to construct two \texttt{AES} objects, one for
+    encryption and one for decryption. This is because all modes of operation
+    (apart from ECB) encrypt the same message to different ciphertexts depending
+    on how many bytes have been encrypted before during this run of operations.
+    To be decrypted properly, each ciphertext must be processed by an
+    \texttt{AES} object that has already decrypted as many bytes as were
+    encrypted before the encryption of the ciphertext (and of course with the
+    same IV). Let's see a clarifying example:
+
+    \getenv[\aesmode]{AES_MODE}
+    \codelisting{\aesmode}
+
+    \begin{exercise}
+      \label{ex:aes:name}
+      Encrypt your name with AES-192-CFB under a random key and IV and
+      successfully decrypt the resulting ciphertext.
+    \end{exercise}
+
+    \solution{AES_NAME}
+
+    \getenv[\classifiedkey]{CLASSIFIED_KEY}
+    \getenv[\classifiediv]{CLASSIFIED_IV}
+    \getenv[\classifiedciphertext]{CLASSIFIED_CIPHERTEXT}
+    \begin{exercise}
+      \label{ex:aes:classified}
+      Decrypt the ciphertext \topythonbytes{\classifiedciphertext} which has
+      been encrypted with AES-256-CFB, under key \topythonbytes{\classifiedkey}
+      and IV \topythonbytes{\classifiediv}. Ensure the plaintext is in English.
+    \end{exercise}
+
+    \solution{AES_CLASSIFIED}
+
+    \getenv[\ctrnonce]{CTR_NONCE}
+    \getenv[\ctrciphertext]{CTR_CIPHERTEXT}
+    \begin{exercise*}
+      \label{ex:aes:counter}
+      Decrypt the ciphertext \topythonbytes{\ctrciphertext} which has been
+      encrypted with AES-192-CTR (notice the different mode!\footnote{Refer to
+      the documentation at
+      \url{https://pycryptodome.readthedocs.io/en/latest/src/cipher/aes.html#Crypto.Cipher.AES.new}
+      to find out how it works.}). The key is the concatenation of the answer to
+      exercise~\ref{ex:hash:bruteforce} with itself 12 times. The \emph{nonce}
+      is \texttt{\ctrnonce}. The AES object has encrypted
+      \topythonbytes{0123456789} prior to encrypting our plaintext. Ensure that
+      the resulting plaintext starts with \texttt{-----BEGIN RSA PRIVATE
+      KEY-----} and ends with \texttt{-----END RSA PRIVATE KEY-----}.
+      \textit{Hint:} do not touch the \textit{counter}, just let the tool use
+      the default one.
+    \end{exercise*}
+
+    \solution{AES_CTR}
+
+  \section{Public key cryptography}
+    This is the last section of this Tutorial, so let's make it worth it! We'll
+    see why public key cryptosystems are useful and will try out PKCS1 OAEP for
+    encryption and PKCS1 PSS for digital signatures, both provided by
+    \texttt{pycryptodome}. Since these tools are more complex than the previous
+    ones under the hood, we will gloss over more theoretical details than before
+    but we won't throw away the essence.
+
+  \subsection{Theory}
+    Symmetric key encryption schemes have some shortcomings. In particular,
+    each pair of communicating parties need a unique, securely stored and used
+    key. This means that for a clique of $N$ parties to communicate, each
+    party has to handle securely $N-1$ keys and be ready to update them in
+    case the counterparty mismanages it. The total count of keys will be
+    $N(N-1)$.
+
+    The problem above is ``just'' logistics. There are several more
+    fundamental problems however. Here we state just a few: Firstly, securely
+    communicating the key itself when first establishing connection is
+    impossible, except for in-person key generation and sharing\footnote{Such
+    primitive methods are obviously shunned upon.}. This is because presumably
+    there is no secure channel through which two parties can privately share
+    the key to begin with. (If such a channel existed, parties could simply
+    use this for their communication.) Secondly, since there is no existing
+    secure channel, how can one party trust that the other party is indeed the
+    intended one? Packets on the Internet pass through innumberable switches
+    and routers -- if their contents are in plaintext, a malicious router can
+    just pretend it is the intended recipient and respond as it wishes. This
+    is called a \emph{Man in the Middle} attack and it cannot be mitigated
+    through purely symmetric encryption. Thirdly, since each key is shared by
+    two parties, there is no way for Alice to prove to a Judge that Bob told
+    her something if the Judge doesn't trust neither Alice nor Bob. This is
+    called the issue of \emph{repudiation} and to solve it we again need
+    asymmetric schemes.
+
+    The two primary tools are \emph{public key encryption} and
+    \emph{digital signatures}. In both cases each party has a keypair: a
+    \emph{private} and a \emph{public} key. The public key can be safely
+    shared with everyone, while private key (ideally) never leaves the
+    machine.
+
+    For encryption, Alice can \emph{encrypt} a message $m$ for Bob with his
+    public key $pk_{\mathit{Bob}}$ using an encryption algorithm: $c \gets
+    \mathit{Enc}(pk_{\mathit{Bob}}, m)$. She can then send $c$ to Bob, who can
+    \emph{decrypt} it with his private key $sk_{\mathit{Bob}}$ using the
+    respective (deterministic) decryption algorithm: $m \gets
+    \mathit{Dec}(sk_{\mathit{Bob}}, c)$. It turns out that defining properly the
+    desired security of such an encryption scheme is a big can of worms. Luckily
+    smart people thought hard on this and came up with
+    \emph{IND-CCA}\footnote{indistinguishability against chosen ciphertext
+    attack} security.
+
+    Regarding signatures, Alice can \emph{sign} a message $m$ with her
+    private key (a.k.a signing key) like so: $\sigma \gets
+    \mathit{Sign}(sk_{\mathit{Alice}}, m)$. She can then send the signature
+    along with the message to anyone and they can then \emph{verify} that
+    she indeed signed the message using her public key: $0/1 \gets
+    \mathit{Verify}(pk_{\mathit{Alice}}, \sigma, m)$. The digital signature is
+    used primarily for \emph{authentication}, i.e. to prove to one party
+    that another party is the one which it claims it is. Analogously to
+    encryption, the desired security of digital signatures is
+    \emph{sEUF-CMA}\footnote{strong existential unforgeability against chosen
+    message attack}.
+
+  \subsection{Practice}
+    Rather surprisingly, the API of both these primitives is simpler than that
+    of symmetric encryption. The main reason is because here we don't have to
+    think in terms of blocks. Let's first take a look at how key generation,
+    encryption and decryption works. The asymmetric encryption standard we
+    recommend is PKCS1 OAEP and the key length is 4096.
+
+    \getenv[\oaepusage]{PKCS1_OAEP_USAGE}
+    \codelisting{\oaepusage}
+    Here's what you should get as output:
+    \outputlisting{\oaepusage}
+
+    Quite a long ciphertext, no? This is a minor hint as to why we still use
+    symmetric encryption: It is way faster (several orders of magnitude) than
+    asymmetric encryption. Many practical systems that need the asymmetric parts
+    for authentication only (e.g. TLS) use a hybrid solution: they authenticate
+    and negotiate a symmetric key using asymmetric cryptography and then
+    transfer the actual data with the negotiated symmetric key. A little binary
+    search will also reveal that the maximum plaintext size is around 470 bytes.
+    Well, that's quite small. Why didn't people bother to implement modes of
+    operation to allow arbitrary lengths? Precisely because asymmetric
+    encryption users only tend to encrypt small chunks (except for PGP) and
+    only use symmetric encryption for longer plaintexts.
+
+    That's it for encryption, let's now see signatures. I promise they're also
+    quite easy. A common, simple trick is to hash the message and sign the
+    result instead of signing the message directly. This helps speed up signing
+    and verifying while allowing for signing messages of practically arbitrary
+    size without compromising security. We'll use SHA3 for a change. The
+    recommended scheme for signatures is PKCS1 PSS (a.k.a. RSASSA-PSS), again
+    with a keysize of 4096 bytes.
+
+    We'll also seize the opportunity to see how to send public keys to other
+    parties. Mind you, using files (as we do here) is only one of the many
+    possible ways, and possibly the least flexible, but it shows us a simple way
+    to use the \texttt{pycryptodome} API to export and import keys.
+
+    This is Alice's script:
+
+    \getenv[\pssusagealice]{PKCS1_PSS_USAGE_ALICE}
+    \codelisting{\pssusagealice}
+
+    And this is the code run by Bob:
+
+    \getenv[\pssusagebob]{PKCS1_PSS_USAGE_BOB}
+    \codelisting{\pssusagebob}
+
+    Bob should get this output:
+    \outputlisting{\pssusagebob}
+
+    \begin{exercise}
+      Produce the following three scripts:
+      \begin{itemize}
+        \item Bob generates a keypair and stores the public part to a file for
+        Alice and the entire pair to another file which (we pretend that) is
+        accessible only by Bob.
+        \item Alice generates her keypair, encrypts and signs with it a message
+        of her (i.e. your) choice. She then stores the public key, the
+        ciphertext and the signature to separate files. She hashes the
+        ciphertext before signing it.
+        \item Bob retrieves his keypair and the three pieces of data created by
+        Alice. He verifies the signature on the ciphertext, decrypts the
+        message and prints it.
+      \end{itemize}
+    \end{exercise}
+
+    \ifthenelse{\equal{\withsolutions}{true}}{
+      \getenv[\bobgen]{GEN_KEY_BOB}
+      \getenv[\alicestore]{STORE_DATA_ALICE}
+      \getenv[\bobverify]{VERIFY_BOB}
+      \begin{tcolorbox}[title=Solution,colback=gray!40!white]
+        \codelisting{\bobgen}
+        \codelisting{\alicestore}
+      \end{tcolorbox}
+      \begin{tcolorbox}[title=Solution (continued),colback=gray!40!white]
+        \codelisting{\bobverify}
+        \outputlisting{\bobverify}
+      \end{tcolorbox}
+    }{}
+
+    \getenv[\quotecipher]{QUOTE_CIPHER}
+    \begin{exercise*}
+      Decrypt \topythonbytes{\quotecipher} using PKCS1 OAEP. The private key is
+      the plaintext answer of Exercise~\ref{ex:aes:counter}.
+    \end{exercise*}
+
+    \solution{DECRYPT_PK}
+\end{document}
