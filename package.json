@@ -5,7 +5,9 @@
   "license": "MIT",
   "repository": "git://github.com/OrfeasLitos/doc-builder.git",
   "dependencies": {
-    "command-line-args": "^5.1.1"
+    "command-line-args": "^5.1.1",
+    "lodash": "^4.17.15",
+    "toposort": "^2.0.2"
   },
   "devDependencies": {
     "mocha": "^7.1.1",
