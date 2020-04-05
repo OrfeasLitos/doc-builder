@@ -1,11 +1,13 @@
 'use strict'
 
-const cmd = require('command-line-args')
 const path = require('path')
 const fs = require('fs')
+const cmd = require('command-line-args')
+const toposort = require('toposort')
+const _ = require('lodash')
 
 module.exports = {
-  parseCmd: function(argv) {
+  parseCmd(argv) {
     if (argv === undefined) {
       const argv = process.argv
     }
@@ -30,10 +32,10 @@ module.exports = {
     }
   },
 
-  findFiles: function(directories) {
+  findFiles(directories) {
     return directories.flatMap(dir => {
       return fs.readdirSync(dir).map(script => {
-        return path.parse(dir + script)
+        return dir.concat(script)
       })
     })
   },
@@ -46,7 +48,19 @@ module.exports = {
         if (pair.indexOf('->') === -1) {
           throw new TypeError(`Pair '${pair}' does not contain '->'`)
         }
-        return pair.split('->').map(x => path.parse(x.trim()))
+        return pair.split('->').map(x => x.trim())
       })
+  },
+
+  depGraph({ scripts, dependencies }) {
+    return {
+      scripts: this.findFiles(scripts),
+      dependencies: this.parseDeps(dependencies)
+    }
+  },
+
+  schedule(files) {
+    const { scripts, dependencies } = this.depGraph(files)
+    return toposort.array(scripts, dependencies)
   }
 }
