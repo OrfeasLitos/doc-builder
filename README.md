@@ -4,7 +4,7 @@ your tex document? No more of that! `doc-builder` automates the process by
 running your scripts, adding their outputs to your tex file and compiling the
 result into a nice PDF.
 
-Requirement: Node.js, `pdflatex`
+Requirements: Node.js, `pdflatex`
 
 To build the PDF, run `node build.js`.
 [TODO:] decide how to handle solutions
