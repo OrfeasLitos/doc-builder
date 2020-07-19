@@ -6,12 +6,12 @@
   "repository": "git://github.com/OrfeasLitos/doc-builder.git",
   "dependencies": {
     "command-line-args": "^5.1.1",
-    "lodash": "^4.17.15",
-    "toposort": "^2.0.2",
-    "grunt": "^1.1.0"
+    "grunt": "^1.2.1",
+    "lodash": "^4.17.19",
+    "toposort": "^2.0.2"
   },
   "devDependencies": {
-    "mocha": "^7.1.1",
+    "mocha": "^7.2.0",
     "should": "^13.2.3",
     "should-sinon": "0.0.6"
   },
