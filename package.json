@@ -6,7 +6,7 @@
   "repository": "git://github.com/OrfeasLitos/doc-builder.git",
   "dependencies": {
     "command-line-args": "^5.1.1",
-    "lodash": "^4.17.15",
+    "lodash": "^4.17.19",
     "toposort": "^2.0.2",
     "grunt": "^1.1.0"
   },
