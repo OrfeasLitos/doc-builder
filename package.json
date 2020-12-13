@@ -6,8 +6,8 @@
   "repository": "git://github.com/OrfeasLitos/doc-builder.git",
   "dependencies": {
     "command-line-args": "^5.1.1",
-    "grunt": "^1.2.1",
-    "lodash": "^4.17.19",
+    "grunt": "^1.3.0",
+    "lodash": "^4.17.20",
     "toposort": "^2.0.2"
   },
   "devDependencies": {
